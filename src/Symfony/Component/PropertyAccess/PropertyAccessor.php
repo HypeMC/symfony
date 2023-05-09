@@ -166,6 +166,7 @@ class PropertyAccessor implements PropertyAccessorInterface
                 // you only need set value for '[a][b][c]' and it's safe to ignore '[a][b]' and '[a]'
                 if ($overwrite) {
                     $property = $propertyPath->getElement($i);
+                    $property = $this->resolveIndexFromPosition($propertyPath, $i, $zval, $property);
 
                     if ($propertyPath->isIndex($i)) {
                         if ($overwrite = !isset($zval[self::REF])) {
@@ -300,6 +301,8 @@ class PropertyAccessor implements PropertyAccessorInterface
             }
 
             if ($isIndex) {
+                $property = $this->resolveIndexFromPosition($propertyPath, $i, $zval, $property);
+
                 // Create missing nested arrays on demand
                 if (($zval[self::VALUE] instanceof \ArrayAccess && !$zval[self::VALUE]->offsetExists($property))
                     || (\is_array($zval[self::VALUE]) && !isset($zval[self::VALUE][$property]) && !\array_key_exists($property, $zval[self::VALUE]))
@@ -655,6 +658,23 @@ class PropertyAccessor implements PropertyAccessorInterface
         }
 
         return $this->propertyPathCache[$propertyPath] = $propertyPathInstance;
+    }
+
+    private function resolveIndexFromPosition(PropertyPathInterface $propertyPath, int $i, array $zval, string $property): string
+    {
+        if (!$propertyPath->isIndexPosition($i)) {
+            return $property;
+        }
+
+        if (!\is_array($zval[self::VALUE])) {
+            if (!$zval[self::VALUE] instanceof \Traversable) {
+                throw new NoSuchIndexException(sprintf('Cannot read index "%s" while trying to traverse path "%s".', $property, (string) $propertyPath)); // todo
+            }
+
+            $zval[self::VALUE] = iterator_to_array($zval[self::VALUE]);
+        }
+
+        return array_keys($zval[self::VALUE])[$property] ?? throw new NoSuchIndexException(/* TODO */);
     }
 
     /**
