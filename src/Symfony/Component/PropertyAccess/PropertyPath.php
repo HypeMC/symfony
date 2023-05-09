@@ -53,6 +53,14 @@ class PropertyPath implements \IteratorAggregate, PropertyPathInterface
 
     /**
      * Contains a Boolean for each property in $elements denoting whether this
+     * element is the position of the index. It is the value of the index otherwise.
+     *
+     * @var array<bool>
+     */
+    private array $isIndexPosition = [];
+
+    /**
+     * Contains a Boolean for each property in $elements denoting whether this
      * element is optional or not.
      *
      * @var array<bool>
@@ -80,6 +88,7 @@ class PropertyPath implements \IteratorAggregate, PropertyPathInterface
             $this->elements = $propertyPath->elements;
             $this->length = $propertyPath->length;
             $this->isIndex = $propertyPath->isIndex;
+            $this->isIndexPosition = $propertyPath->isIndexPosition;
             $this->isNullSafe = $propertyPath->isNullSafe;
             $this->pathAsString = $propertyPath->pathAsString;
 
@@ -95,15 +104,21 @@ class PropertyPath implements \IteratorAggregate, PropertyPathInterface
         $remaining = $propertyPath;
 
         // first element is evaluated differently - no leading dot for properties
-        $pattern = '/^(((?:[^\\\\.\[]|\\\\.)++)|\[([^\]]++)\])(.*)/';
+        $pattern = '/^(((?:[^\\\\.\[<]|\\\\.)++)|\[([^\]]++)\]|<(\d++)>)(.*)/';
 
         while (preg_match($pattern, $remaining, $matches)) {
-            if ('' !== $matches[2]) {
-                $element = $matches[2];
-                $this->isIndex[] = false;
-            } else {
+            if ('<' === $matches[1][0] ?? '') {
+                $element = $matches[4];
+                $this->isIndex[] = true;
+                $this->isIndexPosition[] = true;
+            } elseif ('[' === $matches[1][0] ?? '') {
                 $element = $matches[3];
                 $this->isIndex[] = true;
+                $this->isIndexPosition[] = false;
+            } else {
+                $element = $matches[2];
+                $this->isIndex[] = false;
+                $this->isIndexPosition[] = false;
             }
 
             // Mark as optional when last character is "?".
@@ -114,15 +129,15 @@ class PropertyPath implements \IteratorAggregate, PropertyPathInterface
                 $this->isNullSafe[] = false;
             }
 
-            $element = preg_replace('/\\\([.[])/', '$1', $element);
+            $element = preg_replace('/\\\([.[<])/', '$1', $element);
             if (str_ends_with($element, '\\\\')) {
                 $element = substr($element, 0, -1);
             }
             $this->elements[] = $element;
 
             $position += \strlen($matches[1]);
-            $remaining = $matches[4];
-            $pattern = '/^(\.((?:[^\\\\.\[]|\\\\.)++)|\[([^\]]++)\])(.*)/';
+            $remaining = $matches[5];
+            $pattern = '/^(\.((?:[^\\\\.\[<]|\\\\.)++)|\[([^\]]++)\]|<(\d++)>)(.*)/';
         }
 
         if ('' !== $remaining) {
@@ -151,9 +166,10 @@ class PropertyPath implements \IteratorAggregate, PropertyPathInterface
         $parent = clone $this;
 
         --$parent->length;
-        $parent->pathAsString = substr($parent->pathAsString, 0, max(strrpos($parent->pathAsString, '.'), strrpos($parent->pathAsString, '[')));
+        $parent->pathAsString = substr($parent->pathAsString, 0, max(strrpos($parent->pathAsString, '.'), strrpos($parent->pathAsString, '['), strrpos($parent->pathAsString, '<')));
         array_pop($parent->elements);
         array_pop($parent->isIndex);
+        array_pop($parent->isIndexPosition);
         array_pop($parent->isNullSafe);
 
         return $parent;
@@ -197,6 +213,15 @@ class PropertyPath implements \IteratorAggregate, PropertyPathInterface
         }
 
         return $this->isIndex[$index];
+    }
+
+    public function isIndexPosition(int $index): bool
+    {
+        if (!isset($this->isIndexPosition[$index])) {
+            throw new OutOfBoundsException(sprintf('The index "%s" is not within the property path.', $index));
+        }
+
+        return $this->isIndexPosition[$index];
     }
 
     public function isNullSafe(int $index): bool

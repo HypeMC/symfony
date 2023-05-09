@@ -16,7 +16,8 @@ namespace Symfony\Component\PropertyAccess;
  *
  * @author Bernhard Schussek <bschussek@gmail.com>
  *
- * @method bool isNullSafe(int $index) Returns whether the element at the given index is null safe. Not implementing it is deprecated since Symfony 6.2
+ * @method bool isNullSafe(int $index)      Returns whether the element at the given index is null safe. Not implementing it is deprecated since Symfony 6.2
+ * @method bool isIndexPosition(int $index) Returns whether the element at the given index is the position of the index. Not implementing it is deprecated since Symfony 6.3
  *
  * @extends \Traversable<int, string>
  */

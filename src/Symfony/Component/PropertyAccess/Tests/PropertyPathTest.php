@@ -46,6 +46,12 @@ class PropertyPathTest extends TestCase
             ['property[['],
             ['property[.'],
             ['property[]'],
+            ['property.<'],
+            ['property<'],
+            ['property<<'],
+            ['property<.'],
+            ['property<>'],
+            ['property<woo>'],
         ];
     }
 
@@ -92,6 +98,13 @@ class PropertyPathTest extends TestCase
         $this->assertEquals(['grandpa[parent]', 'child'], $propertyPath->getElements());
     }
 
+    public function testGetElementsWithEscapedIndexPosition()
+    {
+        $propertyPath = new PropertyPath('grandpa\<1><0>');
+
+        $this->assertEquals(['grandpa<1>', '0'], $propertyPath->getElements());
+    }
+
     public function testGetElementsWithDoubleEscapedDot()
     {
         $propertyPath = new PropertyPath('grandpa\\\.par\ent.\\\child');
@@ -106,9 +119,23 @@ class PropertyPathTest extends TestCase
         $this->assertEquals(['grandpa\\', 'par\ent', '\\\child'], $propertyPath->getElements());
     }
 
+    public function testGetElementsWithDoubleEscapedIndexPosition()
+    {
+        $propertyPath = new PropertyPath('grandpa\\\<1><0>');
+
+        $this->assertEquals(['grandpa\\', '1', '0'], $propertyPath->getElements());
+    }
+
     public function testGetParentWithIndex()
     {
         $propertyPath = new PropertyPath('grandpa.parent[child]');
+
+        $this->assertEquals(new PropertyPath('grandpa.parent'), $propertyPath->getParent());
+    }
+
+    public function testGetParentWithIndexPosition()
+    {
+        $propertyPath = new PropertyPath('grandpa.parent<0>');
 
         $this->assertEquals(new PropertyPath('grandpa.parent'), $propertyPath->getParent());
     }
@@ -130,9 +157,10 @@ class PropertyPathTest extends TestCase
 
     public function testGetElement()
     {
-        $propertyPath = new PropertyPath('grandpa.parent[child]');
+        $propertyPath = new PropertyPath('grandpa.parent[child]<1>');
 
         $this->assertEquals('child', $propertyPath->getElement(2));
+        $this->assertEquals('1', $propertyPath->getElement(3));
     }
 
     public function testGetElementDoesNotAcceptInvalidIndices()
@@ -195,6 +223,30 @@ class PropertyPathTest extends TestCase
     {
         $this->expectException(\OutOfBoundsException::class);
         $propertyPath = new PropertyPath('grandpa.parent[child]');
+
+        $propertyPath->isIndex(-1);
+    }
+
+    public function testIsIndexPosition()
+    {
+        $propertyPath = new PropertyPath('grandpa.parent<0>');
+
+        $this->assertFalse($propertyPath->isIndexPosition(1));
+        $this->assertTrue($propertyPath->isIndexPosition(2));
+    }
+
+    public function testIsIndexPositionDoesNotAcceptInvalidIndices()
+    {
+        $this->expectException(\OutOfBoundsException::class);
+        $propertyPath = new PropertyPath('grandpa.parent<0>');
+
+        $propertyPath->isIndex(3);
+    }
+
+    public function testIsIndexPositionDoesNotAcceptNegativeIndices()
+    {
+        $this->expectException(\OutOfBoundsException::class);
+        $propertyPath = new PropertyPath('grandpa.parent<0>');
 
         $propertyPath->isIndex(-1);
     }
