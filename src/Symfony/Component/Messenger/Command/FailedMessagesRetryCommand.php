@@ -207,7 +207,8 @@ EOF
 
             $this->forceExit = true;
             try {
-                $shouldHandle = $shouldForce || 'retry' === $io->choice('Please select an action', ['retry', 'delete'], 'retry');
+                $choice = 'retry';
+                $shouldHandle = $shouldForce || 'retry' === $choice = $io->choice('Please select an action', ['retry', 'delete', 'skip'], $choice);
             } finally {
                 $this->forceExit = false;
             }
@@ -217,7 +218,10 @@ EOF
             }
 
             $messageReceivedEvent->shouldHandle(false);
-            $receiver->reject($envelope);
+
+            if ('delete' === $choice) {
+                $receiver->reject($envelope);
+            }
         };
         $this->eventDispatcher->addListener(WorkerMessageReceivedEvent::class, $listener);
 
