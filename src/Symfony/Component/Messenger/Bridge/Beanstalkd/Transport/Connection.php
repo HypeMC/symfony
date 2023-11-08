@@ -13,11 +13,11 @@ namespace Symfony\Component\Messenger\Bridge\Beanstalkd\Transport;
 
 use Pheanstalk\Contract\PheanstalkInterface;
 use Pheanstalk\Exception;
-use Pheanstalk\Job as PheanstalkJob;
-use Pheanstalk\JobId;
 use Pheanstalk\Pheanstalk;
 use Symfony\Component\Messenger\Exception\InvalidArgumentException;
 use Symfony\Component\Messenger\Exception\TransportException;
+
+class_alias(interface_exists(PheanstalkInterface::class) ? Connection4Trait::class : Connection5Trait::class, __NAMESPACE__.'\\ConnectionTrait');
 
 /**
  * @author Antonio Pauletich <antonio.pauletich95@gmail.com>
@@ -28,8 +28,10 @@ use Symfony\Component\Messenger\Exception\TransportException;
  */
 class Connection
 {
+    use ConnectionTrait;
+
     private const DEFAULT_OPTIONS = [
-        'tube_name' => PheanstalkInterface::DEFAULT_TUBE,
+        'tube_name' => 'default',
         'timeout' => 0,
         'ttr' => 90,
     ];
@@ -42,19 +44,8 @@ class Connection
      * * ttr: the message time to run before it is put back in the ready queue (in seconds)
      */
     private array $configuration;
-    private PheanstalkInterface $client;
-    private string $tube;
     private int $timeout;
     private int $ttr;
-
-    public function __construct(array $configuration, PheanstalkInterface $client)
-    {
-        $this->configuration = array_replace_recursive(self::DEFAULT_OPTIONS, $configuration);
-        $this->client = $client;
-        $this->tube = $this->configuration['tube_name'];
-        $this->timeout = $this->configuration['timeout'];
-        $this->ttr = $this->configuration['ttr'];
-    }
 
     public static function fromDsn(#[\SensitiveParameter] string $dsn, array $options = []): self
     {
@@ -64,7 +55,7 @@ class Connection
 
         $connectionCredentials = [
             'host' => $components['host'],
-            'port' => $components['port'] ?? PheanstalkInterface::DEFAULT_PORT,
+            'port' => $components['port'] ?? self::$defaultPort,
         ];
 
         $query = [];
@@ -100,7 +91,7 @@ class Connection
 
     public function getTube(): string
     {
-        return $this->tube;
+        return (string) $this->tube;
     }
 
     /**
@@ -120,9 +111,10 @@ class Connection
         }
 
         try {
-            $job = $this->client->useTube($this->tube)->put(
+            $this->client->useTube($this->tube);
+            $job = $this->client->put(
                 $message,
-                PheanstalkInterface::DEFAULT_PRIORITY,
+                self::$defaultPriority,
                 $delay / 1000,
                 $this->ttr
             );
@@ -130,7 +122,7 @@ class Connection
             throw new TransportException($exception->getMessage(), 0, $exception);
         }
 
-        return (string) $job->getId();
+        return $job->getId();
     }
 
     public function get(): ?array
@@ -152,10 +144,12 @@ class Connection
         ];
     }
 
-    private function getFromTube(): ?PheanstalkJob
+    private function getFromTube(): ?object
     {
         try {
-            return $this->client->watchOnly($this->tube)->reserveWithTimeout($this->timeout);
+            $this->client->watch($this->tube);
+
+            return $this->client->reserveWithTimeout($this->timeout);
         } catch (Exception $exception) {
             throw new TransportException($exception->getMessage(), 0, $exception);
         }
@@ -164,7 +158,8 @@ class Connection
     public function ack(string $id): void
     {
         try {
-            $this->client->useTube($this->tube)->delete(new JobId((int) $id));
+            $this->client->useTube($this->tube);
+            $this->client->delete($this->getJob((int) $id));
         } catch (Exception $exception) {
             throw new TransportException($exception->getMessage(), 0, $exception);
         }
@@ -173,7 +168,8 @@ class Connection
     public function reject(string $id): void
     {
         try {
-            $this->client->useTube($this->tube)->delete(new JobId((int) $id));
+            $this->client->useTube($this->tube);
+            $this->client->delete($this->getJob((int) $id));
         } catch (Exception $exception) {
             throw new TransportException($exception->getMessage(), 0, $exception);
         }
@@ -187,6 +183,6 @@ class Connection
             throw new TransportException($exception->getMessage(), 0, $exception);
         }
 
-        return (int) $tubeStats['current-jobs-ready'];
+        return $tubeStats->currentJobsReady;
     }
 }
