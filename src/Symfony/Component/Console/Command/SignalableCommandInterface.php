@@ -11,6 +11,9 @@
 
 namespace Symfony\Component\Console\Command;
 
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
+
 /**
  * Interface for command reacting to signal.
  *
@@ -20,8 +23,11 @@ interface SignalableCommandInterface
 {
     /**
      * Returns the list of signals to subscribe.
+     *
+     * @param InputInterface  $input
+     * @param OutputInterface $output
      */
-    public function getSubscribedSignals(): array;
+    public function getSubscribedSignals(/* InputInterface $input, OutputInterface $output */): array;
 
     /**
      * The method will be called when the application is signaled.

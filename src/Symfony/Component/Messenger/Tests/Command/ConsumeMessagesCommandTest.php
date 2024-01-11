@@ -30,6 +30,9 @@ use Symfony\Component\Messenger\Stamp\BusNameStamp;
 use Symfony\Component\Messenger\Tests\Fixtures\ResettableDummyReceiver;
 use Symfony\Component\Messenger\Transport\Receiver\ReceiverInterface;
 
+/**
+ * @group legacy
+ */
 class ConsumeMessagesCommandTest extends TestCase
 {
     public function testConfigurationWithDefaultReceiver()

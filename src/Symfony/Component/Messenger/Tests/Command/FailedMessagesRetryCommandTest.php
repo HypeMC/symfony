@@ -22,6 +22,9 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\TransportMessageIdStamp;
 use Symfony\Component\Messenger\Transport\Receiver\ListableReceiverInterface;
 
+/**
+ * @group legacy
+ */
 class FailedMessagesRetryCommandTest extends TestCase
 {
     public function testBasicRunWithServiceLocator()

@@ -272,8 +272,12 @@ EOF
         }
     }
 
-    public function getSubscribedSignals(): array
+    public function getSubscribedSignals(/* InputInterface $input, OutputInterface $output */): array
     {
+        if (2 !== \func_num_args()) {
+            trigger_deprecation('symfony/messenger', '7.1', 'Calling "%s()" without providing an instance of "%s" as the first argument and "%s" as the second argument is deprecated.', __METHOD__, InputInterface::class, OutputInterface::class);
+        }
+
         return $this->signals ?? (\extension_loaded('pcntl') ? [\SIGTERM, \SIGINT] : []);
     }
 

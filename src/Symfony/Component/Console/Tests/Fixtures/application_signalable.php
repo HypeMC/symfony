@@ -13,7 +13,7 @@ while (!file_exists($vendor.'/vendor')) {
 require $vendor.'/vendor/autoload.php';
 
 (new class() extends SingleCommandApplication implements SignalableCommandInterface {
-    public function getSubscribedSignals(): array
+    public function getSubscribedSignals(/* InputInterface $input, OutputInterface $output */): array
     {
         return [SIGINT];
     }

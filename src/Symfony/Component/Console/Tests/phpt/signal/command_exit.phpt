@@ -31,7 +31,7 @@ class MyCommand extends Command implements SignalableCommandInterface
     }
 
 
-    public function getSubscribedSignals(): array
+    public function getSubscribedSignals(/* InputInterface $input, OutputInterface $output */): array
     {
         return [\SIGINT];
     }

@@ -975,7 +975,15 @@ class Application implements ResetInterface
             }
         }
 
-        $commandSignals = $command instanceof SignalableCommandInterface ? $command->getSubscribedSignals() : [];
+        // bind before getSubscribedSignals() and the console.command event, so the methods and listeners have access to input options/arguments
+        try {
+            $command->mergeApplicationDefinition();
+            $input->bind($command->getDefinition());
+        } catch (ExceptionInterface) {
+            // ignore invalid options/arguments for now, to allow the event listeners to customize the InputDefinition
+        }
+
+        $commandSignals = $command instanceof SignalableCommandInterface ? $command->getSubscribedSignals($input, $output) : [];
         if ($commandSignals || $this->dispatcher && $this->signalsToDispatchEvent) {
             if (!$this->signalRegistry) {
                 throw new RuntimeException('Unable to subscribe to signal events. Make sure that the "pcntl" extension is installed and that "pcntl_*" functions are not disabled by your php.ini\'s "disable_functions" directive.');
@@ -1027,14 +1035,6 @@ class Application implements ResetInterface
 
         if (null === $this->dispatcher) {
             return $command->run($input, $output);
-        }
-
-        // bind before the console.command event, so the listeners have access to input options/arguments
-        try {
-            $command->mergeApplicationDefinition();
-            $input->bind($command->getDefinition());
-        } catch (ExceptionInterface) {
-            // ignore invalid options/arguments for now, to allow the event listeners to customize the InputDefinition
         }
 
         $event = new ConsoleCommandEvent($command, $input, $output);

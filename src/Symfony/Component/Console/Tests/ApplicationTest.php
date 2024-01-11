@@ -2226,6 +2226,24 @@ class ApplicationTest extends TestCase
         $this->assertSame($previousSttyMode, $sttyMode);
     }
 
+    /**
+     * @requires extension pcntl
+     */
+    public function testInputIsBoundWhenPassedToGetSubscribedSignals()
+    {
+        $command = new SignableCommandWithOptions();
+
+        $application = $this->createSignalableApplication($command, null);
+
+        $input = new ArrayInput(['signal', 'arg' => 'argval', '--option' => 'optionval']);
+
+        $this->assertSame(1, $application->run($input));
+        $this->assertTrue($command->input->hasArgument('arg'));
+        $this->assertSame('argval', $command->input->getArgument('arg'));
+        $this->assertTrue($command->input->hasOption('option'));
+        $this->assertSame('optionval', $command->input->getOption('option'));
+    }
+
     private function createSignalableApplication(Command $command, ?EventDispatcherInterface $dispatcher): Application
     {
         $application = new Application();
@@ -2325,8 +2343,37 @@ class BaseSignableCommand extends Command
 #[AsCommand(name: 'signal')]
 class SignableCommand extends BaseSignableCommand implements SignalableCommandInterface
 {
-    public function getSubscribedSignals(): array
+    public function getSubscribedSignals(InputInterface $input = null, OutputInterface $output = null): array
     {
+        return SignalRegistry::isSupported() ? [\SIGUSR1] : [];
+    }
+
+    public function handleSignal(int $signal, int|false $previousExitCode = 0): int|false
+    {
+        $this->signaled = true;
+        $this->signalHandlers[] = __CLASS__;
+
+        return false;
+    }
+}
+
+#[AsCommand(name: 'signal')]
+class SignableCommandWithOptions extends BaseSignableCommand implements SignalableCommandInterface
+{
+    public InputInterface $input;
+
+    protected function configure(): void
+    {
+        $this
+            ->addArgument('arg', InputArgument::REQUIRED)
+            ->addOption('option', mode: InputOption::VALUE_REQUIRED)
+        ;
+    }
+
+    public function getSubscribedSignals(InputInterface $input = null, OutputInterface $output = null): array
+    {
+        $this->input = $input;
+
         return SignalRegistry::isSupported() ? [\SIGUSR1] : [];
     }
 
@@ -2342,7 +2389,7 @@ class SignableCommand extends BaseSignableCommand implements SignalableCommandIn
 #[AsCommand(name: 'signal')]
 class TerminatableCommand extends BaseSignableCommand implements SignalableCommandInterface
 {
-    public function getSubscribedSignals(): array
+    public function getSubscribedSignals(InputInterface $input = null, OutputInterface $output = null): array
     {
         return SignalRegistry::isSupported() ? [\SIGINT] : [];
     }
@@ -2376,7 +2423,7 @@ class TerminatableWithEventCommand extends Command implements SignalableCommandI
         return 51;
     }
 
-    public function getSubscribedSignals(): array
+    public function getSubscribedSignals(InputInterface $input = null, OutputInterface $output = null): array
     {
         return [\SIGINT];
     }

@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+7.1
+---
+
+ * Add `InputInterface $input, OutputInterface $output` arguments to `SignalableCommandInterface::getSubscribedSignals()`
+
 7.0
 ---
 

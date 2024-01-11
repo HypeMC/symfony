@@ -56,7 +56,7 @@ final class CommandDataCollector extends DataCollector
             'input' => $this->cloneVar($command->input),
             'output' => $this->cloneVar($command->output),
             'interactive_inputs' => array_map($this->cloneVar(...), $command->interactiveInputs),
-            'signalable' => $command->getSubscribedSignals(),
+            'signalable' => $command->getSubscribedSignals($command->input, $command->output),
             'handled_signals' => $command->handledSignals,
             'helper_set' => array_map($this->cloneVar(...), iterator_to_array($command->getHelperSet())),
         ];

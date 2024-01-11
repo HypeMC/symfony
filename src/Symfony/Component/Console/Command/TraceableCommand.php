@@ -86,9 +86,9 @@ final class TraceableCommand extends Command implements SignalableCommandInterfa
         return $this->command->{$name}(...$arguments);
     }
 
-    public function getSubscribedSignals(): array
+    public function getSubscribedSignals(/* InputInterface $input, OutputInterface $output */): array
     {
-        return $this->command instanceof SignalableCommandInterface ? $this->command->getSubscribedSignals() : [];
+        return $this->command instanceof SignalableCommandInterface ? $this->command->getSubscribedSignals(...\func_get_args()) : [];
     }
 
     public function handleSignal(int $signal, int|false $previousExitCode = 0): int|false
