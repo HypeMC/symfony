@@ -43,6 +43,8 @@ use Symfony\Component\Messenger\Worker;
 #[AsCommand(name: 'messenger:consume', description: 'Consume messages')]
 class ConsumeMessagesCommand extends Command implements SignalableCommandInterface
 {
+    private const DEFAULT_KEEPALIVE_INTERVAL = 5;
+
     private RoutableMessageBus $routableBus;
     private ContainerInterface $receiverLocator;
     private EventDispatcherInterface $eventDispatcher;
@@ -53,6 +55,7 @@ class ConsumeMessagesCommand extends Command implements SignalableCommandInterfa
     private ?ContainerInterface $rateLimiterLocator;
     private ?array $signals;
     private ?Worker $worker = null;
+    private ?int $keepaliveInterval = null;
 
     public function __construct(RoutableMessageBus $routableBus, ContainerInterface $receiverLocator, EventDispatcherInterface $eventDispatcher, LoggerInterface $logger = null, array $receiverNames = [], ResetServicesListener $resetServicesListener = null, array $busIds = [], ContainerInterface $rateLimiterLocator = null, array $signals = null)
     {
@@ -85,6 +88,7 @@ class ConsumeMessagesCommand extends Command implements SignalableCommandInterfa
                 new InputOption('queues', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Limit receivers to only consume from the specified queues'),
                 new InputOption('no-reset', null, InputOption::VALUE_NONE, 'Do not reset container services after each message'),
                 new InputOption('all', null, InputOption::VALUE_NONE, 'Consume messages from all receivers'),
+                new InputOption('keepalive', null, InputOption::VALUE_OPTIONAL, 'Whether to use the transport\'s keepalive mechanism if implemented', self::DEFAULT_KEEPALIVE_INTERVAL),
             ])
             ->setHelp(<<<'EOF'
 The <info>%command.name%</info> command consumes messages and dispatches them to the message bus.
@@ -158,6 +162,14 @@ EOF
 
         if (!$input->getArgument('receivers')) {
             throw new RuntimeException('Please pass at least one receiver.');
+        }
+    }
+
+    protected function initialize(InputInterface $input, OutputInterface $output): void
+    {
+        if ($input->hasParameterOption('--keepalive')) {
+            $this->keepaliveInterval = (int) ($input->getOption('keepalive') ?? self::DEFAULT_KEEPALIVE_INTERVAL);
+            $this->scheduleAlarm();
         }
     }
 
@@ -278,7 +290,18 @@ EOF
             trigger_deprecation('symfony/messenger', '7.1', 'Calling "%s()" without providing an instance of "%s" as the first argument and "%s" as the second argument is deprecated.', __METHOD__, InputInterface::class, OutputInterface::class);
         }
 
-        return $this->signals ?? (\extension_loaded('pcntl') ? [\SIGTERM, \SIGINT] : []);
+        $input = func_get_arg(0) ?: null;
+        if (null !== $input && !$input instanceof InputInterface) {
+            throw new \TypeError(sprintf('The first argument of "%s" must be instance of "%s", "%s" provided.', __METHOD__, InputInterface::class, get_debug_type($input)));
+        }
+
+        $signals = $this->signals ?? (\extension_loaded('pcntl') ? [\SIGTERM, \SIGINT] : []);
+
+        if (\extension_loaded('pcntl') && $input?->hasParameterOption('--keepalive')) {
+            $signals[] = \SIGALRM;
+        }
+
+        return $signals;
     }
 
     public function handleSignal(int $signal, int|false $previousExitCode = 0): int|false
@@ -287,11 +310,27 @@ EOF
             return false;
         }
 
+        if (\SIGALRM === $signal) {
+            $this->logger?->info('Sending keepalive request.', ['transport_names' => $this->worker->getMetadata()->getTransportNames()]);
+
+            $this->worker->keepalive();
+            $this->scheduleAlarm();
+
+            return false;
+        }
+
         $this->logger?->info('Received signal {signal}.', ['signal' => $signal, 'transport_names' => $this->worker->getMetadata()->getTransportNames()]);
 
         $this->worker->stop();
 
         return false;
+    }
+
+    private function scheduleAlarm(): void
+    {
+        if (null !== $this->keepaliveInterval && \extension_loaded('pcntl')) {
+            pcntl_alarm($this->keepaliveInterval);
+        }
     }
 
     private function convertToBytes(string $memoryLimit): int
