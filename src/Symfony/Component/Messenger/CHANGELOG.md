@@ -7,6 +7,7 @@ CHANGELOG
  * `WrappedExceptionsInterface` now extends PHP's `Throwable` interface
  * Add `#[AsMessage]` attribute with `$transport` parameter for message routing
  * Add `--format` option to the `messenger:stats` command
+ * Add the ability to asynchronously notify transports about which messages are still being processed by the handler, using `pcntl_alarm()`
 
 7.1
 ---
