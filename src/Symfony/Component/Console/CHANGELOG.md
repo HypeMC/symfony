@@ -6,6 +6,7 @@ CHANGELOG
 
  * Add support for `FORCE_COLOR` environment variable
  * Add `verbosity` argument to `mustRun` process helper method
+ * Add `AlarmableCommandInterface` and `console.alarm` event
 
 7.1
 ---
