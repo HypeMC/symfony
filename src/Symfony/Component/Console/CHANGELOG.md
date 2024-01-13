@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+7.2
+---
+
+ * Add `AlarmableCommandInterface` and `console.alarm` event
+
 7.1
 ---
 
