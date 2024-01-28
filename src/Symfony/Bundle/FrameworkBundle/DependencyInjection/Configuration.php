@@ -1097,10 +1097,22 @@ class Configuration implements ConfigurationInterface
 
     private function addSerializerSection(ArrayNodeDefinition $rootNode, callable $enableIfStandalone): void
     {
+        $defaultContextNode = fn () => (new NodeBuilder())
+            ->arrayNode('default_context')
+                ->normalizeKeys(false)
+                ->beforeNormalization()
+                    ->ifTrue(fn () => $this->debug && class_exists(JsonParser::class))
+                    ->then(fn (array $v) => $v + [JsonDecode::DETAILED_ERROR_MESSAGES => true])
+                ->end()
+                ->defaultValue([])
+                ->prototype('variable')->end()
+        ;
+
         $rootNode
             ->children()
                 ->arrayNode('serializer')
                     ->info('serializer configuration')
+                    ->fixXmlConfig('scoped_serializer', 'scoped_serializers')
                     ->{$enableIfStandalone('symfony/serializer', Serializer::class)}()
                     ->children()
                         ->booleanNode('enable_attributes')->{class_exists(FullStack::class) ? 'defaultFalse' : 'defaultTrue'}()->end()
@@ -1116,14 +1128,75 @@ class Configuration implements ConfigurationInterface
                                 ->end()
                             ->end()
                         ->end()
-                        ->arrayNode('default_context')
-                            ->normalizeKeys(false)
-                            ->beforeNormalization()
-                                ->ifTrue(fn () => $this->debug && class_exists(JsonParser::class))
-                                ->then(fn (array $v) => $v + [JsonDecode::DETAILED_ERROR_MESSAGES => true])
+                        ->append($defaultContextNode())
+                        ->arrayNode('scoped_serializers')
+                            ->useAttributeAsKey('name')
+                            ->arrayPrototype()
+                                ->children()
+                                    ->scalarNode('name_converter')->end()
+                                    ->append($defaultContextNode())
+                                    ->arrayNode('include_default_normalizers')
+                                        ->fixXmlConfig('normalizer', 'normalizers')
+                                        ->beforeNormalization()
+                                            ->always(fn ($v) => match (true) {
+                                                \is_string($v) => ['normalizers' => [$v]],
+                                                \is_bool($v) => ['normalizers' => $v ? ['*'] : []],
+                                                \is_array($v) && array_is_list($v) => ['normalizers' => $v],
+                                                default => $v,
+                                            })
+                                        ->end()
+                                        ->beforeNormalization()
+                                            ->ifTrue(fn ($v) => 1 === \count($normalizers = (array) ($v['normalizers'] ?? $v['normalizer'] ?? [])) && '*' === reset($normalizers))
+                                            ->then(fn ($v) => ['type' => 'all', 'normalizers' => []])
+                                        ->end()
+                                        ->children()
+                                            ->enumNode('type')
+                                                ->values(['all', 'exclusive', 'inclusive'])
+                                                ->defaultNull()
+                                            ->end()
+                                            ->arrayNode('normalizers')
+                                                ->prototype('scalar')->end()
+                                            ->end()
+                                        ->end()
+                                        ->validate()
+                                            ->ifTrue(fn ($v) => !$v['normalizers'] && 'all' !== $v['type'])
+                                            ->thenUnset()
+                                        ->end()
+                                        ->validate()
+                                            ->ifTrue(fn ($v) => 'all' === $v['type'] && $v['normalizers'])
+                                            ->thenInvalid('Normalizers cannot be defined when the "type" is set to "all".')
+                                        ->end()
+                                        ->validate()
+                                            ->ifTrue(fn ($v) => 'all' !== $v['type'])
+                                            ->then(function ($v) {
+                                                $isExclusive = null;
+                                                if (isset($v['type'])) {
+                                                    $isExclusive = 'exclusive' === $v['type'];
+                                                }
+
+                                                $normalizers = [];
+                                                foreach ($v['normalizers'] as $normalizer) {
+                                                    if (str_starts_with($normalizer, '!')) {
+                                                        if (false === $isExclusive) {
+                                                            throw new InvalidConfigurationException('Exclusive and inclusive definitions cannot be mixed in the normalizers list.');
+                                                        }
+                                                        $normalizers[] = substr($normalizer, 1);
+                                                        $isExclusive = true;
+                                                    } else {
+                                                        if (true === $isExclusive) {
+                                                            throw new InvalidConfigurationException('Exclusive and inclusive definitions cannot be mixed in the normalizers list.');
+                                                        }
+                                                        $normalizers[] = $normalizer;
+                                                        $isExclusive = false;
+                                                    }
+                                                }
+
+                                                return ['type' => $isExclusive ? 'exclusive' : 'inclusive', 'normalizers' => array_unique($normalizers)];
+                                            })
+                                        ->end()
+                                    ->end()
+                                ->end()
                             ->end()
-                            ->defaultValue([])
-                            ->prototype('variable')->end()
                         ->end()
                     ->end()
                 ->end()

@@ -115,20 +115,33 @@
             </div>
 
             <div class="sf-tabs">
-                {{ _self.render_serialize_tab(collector.data, true) }}
-                {{ _self.render_serialize_tab(collector.data, false) }}
-
-                {{ _self.render_normalize_tab(collector.data, true) }}
-                {{ _self.render_normalize_tab(collector.data, false) }}
-
-                {{ _self.render_encode_tab(collector.data, true) }}
-                {{ _self.render_encode_tab(collector.data, false) }}
+                {% for scope in collector.scopes %}
+                    {{ _self.render_scope_tab(collector, scope) }}
+                {% endfor %}
             </div>
         {% endif %}
     </div>
 {% endblock %}
 
-{% macro render_serialize_tab(collectorData, serialize) %}
+{% macro render_scope_tab(collector, scope) %}
+    <div class="tab">
+        <h3 class="tab-title">{{ scope }} <span class="badge">{{ collector.handledCount(scope) }}</h3>
+        <div class="tab-content">
+            <div class="sf-tabs">
+                {{ _self.render_serialize_tab(collector.data(scope), true, scope) }}
+                {{ _self.render_serialize_tab(collector.data(scope), false, scope) }}
+
+                {{ _self.render_normalize_tab(collector.data(scope), true, scope) }}
+                {{ _self.render_normalize_tab(collector.data(scope), false, scope) }}
+
+                {{ _self.render_encode_tab(collector.data(scope), true, scope) }}
+                {{ _self.render_encode_tab(collector.data(scope), false, scope) }}
+            </div>
+        </div>
+    </div>
+{% endmacro %}
+
+{% macro render_serialize_tab(collectorData, serialize, scope) %}
     {% set data = serialize ? collectorData.serialize : collectorData.deserialize %}
     {% set cellPrefix = serialize ? 'serialize' : 'deserialize' %}
 
@@ -154,12 +167,12 @@
                     <tbody>
                         {% for item in data %}
                             <tr>
-                                <td>{{ _self.render_data_cell(item, loop.index, cellPrefix) }}</td>
-                                <td>{{ _self.render_context_cell(item, loop.index, cellPrefix) }}</td>
-                                <td>{{ _self.render_normalizer_cell(item, loop.index, cellPrefix) }}</td>
-                                <td>{{ _self.render_encoder_cell(item, loop.index, cellPrefix) }}</td>
+                                <td>{{ _self.render_data_cell(item, loop.index, cellPrefix, scope) }}</td>
+                                <td>{{ _self.render_context_cell(item, loop.index, cellPrefix, scope) }}</td>
+                                <td>{{ _self.render_normalizer_cell(item, loop.index, cellPrefix, scope) }}</td>
+                                <td>{{ _self.render_encoder_cell(item, loop.index, cellPrefix, scope) }}</td>
                                 <td>{{ _self.render_time_cell(item) }}</td>
-                                <td>{{ _self.render_caller_cell(item, loop.index, cellPrefix) }}</td>
+                                <td>{{ _self.render_caller_cell(item, loop.index, cellPrefix, scope) }}</td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -169,7 +182,7 @@
     </div>
 {% endmacro %}
 
-{% macro render_caller_cell(item, index, method) %}
+{% macro render_caller_cell(item, index, method, scope) %}
     {% if item.caller is defined %}
         <span class="metadata">
             {% set caller = item.caller %}
@@ -183,10 +196,10 @@
             {% else %}
                 {{ caller.name }}
             {% endif %}
-            line <a class="text-small sf-toggle" data-toggle-selector="#sf-trace-{{ method }}-{{ index }}">{{ caller.line }}</a>
+            line <a class="text-small sf-toggle" data-toggle-selector="#sf-trace-{{ scope }}-{{ method }}-{{ index }}">{{ caller.line }}</a>
         </span>
 
-        <div class="sf-serializer-compact hidden" id="sf-trace-{{ method }}-{{ index }}">
+        <div class="sf-serializer-compact hidden" id="sf-trace-{{ scope }}-{{ method }}-{{ index }}">
             <div class="trace">
                 {{ caller.file|file_excerpt(caller.line)|replace({
                     '#DD0000': 'var(--highlight-string)',
@@ -199,7 +212,7 @@
     {% endif %}
 {% endmacro %}
 
-{% macro render_normalize_tab(collectorData, normalize) %}
+{% macro render_normalize_tab(collectorData, normalize, scope) %}
     {% set data = normalize ? collectorData.normalize : collectorData.denormalize %}
     {% set cellPrefix = normalize ? 'normalize' : 'denormalize' %}
 
@@ -224,11 +237,11 @@
                     <tbody>
                         {% for item in data %}
                             <tr>
-                                <td>{{ _self.render_data_cell(item, loop.index, cellPrefix) }}</td>
-                                <td>{{ _self.render_context_cell(item, loop.index, cellPrefix) }}</td>
-                                <td>{{ _self.render_normalizer_cell(item, loop.index, cellPrefix) }}</td>
+                                <td>{{ _self.render_data_cell(item, loop.index, cellPrefix, scope) }}</td>
+                                <td>{{ _self.render_context_cell(item, loop.index, cellPrefix, scope) }}</td>
+                                <td>{{ _self.render_normalizer_cell(item, loop.index, cellPrefix, scope) }}</td>
                                 <td>{{ _self.render_time_cell(item) }}</td>
-                                <td>{{ _self.render_caller_cell(item, loop.index, cellPrefix) }}</td>
+                                <td>{{ _self.render_caller_cell(item, loop.index, cellPrefix, scope) }}</td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -238,7 +251,7 @@
     </div>
 {% endmacro %}
 
-{% macro render_encode_tab(collectorData, encode) %}
+{% macro render_encode_tab(collectorData, encode, scope) %}
     {% set data = encode ? collectorData.encode : collectorData.decode %}
     {% set cellPrefix = encode ? 'encode' : 'decode' %}
 
@@ -263,11 +276,11 @@
                     <tbody>
                         {% for item in data %}
                             <tr>
-                                <td>{{ _self.render_data_cell(item, loop.index, cellPrefix) }}</td>
-                                <td>{{ _self.render_context_cell(item, loop.index, cellPrefix) }}</td>
-                                <td>{{ _self.render_encoder_cell(item, loop.index, cellPrefix) }}</td>
+                                <td>{{ _self.render_data_cell(item, loop.index, cellPrefix, scope) }}</td>
+                                <td>{{ _self.render_context_cell(item, loop.index, cellPrefix, scope) }}</td>
+                                <td>{{ _self.render_encoder_cell(item, loop.index, cellPrefix, scope) }}</td>
                                 <td>{{ _self.render_time_cell(item) }}</td>
-                                <td>{{ _self.render_caller_cell(item, loop.index, cellPrefix) }}</td>
+                                <td>{{ _self.render_caller_cell(item, loop.index, cellPrefix, scope) }}</td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -277,8 +290,8 @@
     </div>
 {% endmacro %}
 
-{% macro render_data_cell(item, index, method) %}
-    {% set data_id = 'data-' ~ method ~ '-' ~ index %}
+{% macro render_data_cell(item, index, method, scope) %}
+    {% set data_id = 'data-' ~ scope ~ '-' ~ method ~ '-' ~ index %}
 
     <span class="nowrap">{{ item.dataType }}</span>
 
@@ -290,8 +303,8 @@
     </div>
 {% endmacro %}
 
-{% macro render_context_cell(item, index, method) %}
-    {% set context_id = 'context-' ~ method ~ '-' ~ index %}
+{% macro render_context_cell(item, index, method, scope) %}
+    {% set context_id = 'context-' ~ scope ~ '-' ~ method ~ '-' ~ index %}
 
     {% if item.type %}
         <span class="nowrap">Type: {{ item.type }}</span>
@@ -308,8 +321,8 @@
     </div>
 {% endmacro %}
 
-{% macro render_normalizer_cell(item, index, method) %}
-    {% set nested_normalizers_id = 'nested-normalizers-' ~ method ~ '-' ~ index %}
+{% macro render_normalizer_cell(item, index, method, scope) %}
+    {% set nested_normalizers_id = 'nested-normalizers-' ~ scope ~ '-' ~ method ~ '-' ~ index %}
 
     {% if item.normalizer is defined %}
         <span class="nowrap"><a href="{{ item.normalizer.file|file_link(item.normalizer.line) }}" title="{{ item.normalizer.file }}">{{ item.normalizer.class }}</a> ({{ '%.2f'|format(item.normalizer.time * 1000) }} ms)</span>
@@ -329,8 +342,8 @@
     {% endif %}
 {% endmacro %}
 
-{% macro render_encoder_cell(item, index, method) %}
-    {% set nested_encoders_id = 'nested-encoders-' ~ method ~ '-' ~ index %}
+{% macro render_encoder_cell(item, index, method, scope) %}
+    {% set nested_encoders_id = 'nested-encoders-' ~ scope ~ '-' ~ method ~ '-' ~ index %}
 
     {% if item.encoder is defined %}
         <span class="nowrap"><a href="{{ item.encoder.file|file_link(item.encoder.line) }}" title="{{ item.encoder.file }}">{{ item.encoder.class }}</a> ({{ '%.2f'|format(item.encoder.time * 1000) }} ms)</span>

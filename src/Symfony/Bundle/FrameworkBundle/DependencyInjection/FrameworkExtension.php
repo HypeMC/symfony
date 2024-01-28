@@ -1891,6 +1891,7 @@ class FrameworkExtension extends Extension
         $container->getDefinition('serializer.mapping.cache_warmer')->replaceArgument(0, $serializerLoaders);
 
         if (isset($config['name_converter']) && $config['name_converter']) {
+            $container->setParameter('.serializer.name_converter', $config['name_converter']);
             $container->getDefinition('serializer.name_converter.metadata_aware')->setArgument(1, new Reference($config['name_converter']));
         }
 
@@ -1911,6 +1912,10 @@ class FrameworkExtension extends Extension
             $arguments = $container->getDefinition('serializer.normalizer.object')->getArguments();
             $context = ($arguments[6] ?? $defaultContext) + ['max_depth_handler' => new Reference($config['max_depth_handler'])];
             $container->getDefinition('serializer.normalizer.object')->setArgument(6, $context);
+        }
+
+        if ($config['scoped_serializers'] ?? false) {
+            $container->setParameter('.serializer.scoped_serializers', $config['scoped_serializers']);
         }
     }
 

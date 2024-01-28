@@ -320,6 +320,7 @@
         <xsd:choice minOccurs="0" maxOccurs="unbounded">
             <xsd:element name="mapping" type="file_mapping" />
             <xsd:element name="default-context" type="metadata" minOccurs="0" maxOccurs="1" />
+            <xsd:element name="scoped-serializer" type="serializer_scope_options" />
         </xsd:choice>
         <xsd:attribute name="enabled" type="xsd:boolean" />
         <xsd:attribute name="enable-attributes" type="xsd:boolean" />
@@ -331,6 +332,31 @@
     <xsd:complexType name="type_info">
         <xsd:attribute name="enabled" type="xsd:boolean" />
     </xsd:complexType>
+
+    <xsd:complexType name="serializer_scope_options">
+        <xsd:sequence>
+            <xsd:element name="default-context" type="metadata" minOccurs="0" maxOccurs="1" />
+            <xsd:element name="include-default-normalizers" type="include_default_normalizers" minOccurs="0" maxOccurs="1" />
+        </xsd:sequence>
+        <xsd:attribute name="name" type="xsd:string" />
+        <xsd:attribute name="name-converter" type="xsd:string" />
+        <xsd:attribute name="include-default-normalizers" type="xsd:boolean" />
+    </xsd:complexType>
+
+    <xsd:complexType name="include_default_normalizers">
+        <xsd:sequence>
+            <xsd:element name="normalizer" type="xsd:string" minOccurs="0" maxOccurs="unbounded" />
+        </xsd:sequence>
+        <xsd:attribute name="type" type="include_default_normalizers_type" />
+    </xsd:complexType>
+
+    <xsd:simpleType name="include_default_normalizers_type">
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="all" />
+            <xsd:enumeration value="exclusive" />
+            <xsd:enumeration value="inclusive" />
+        </xsd:restriction>
+    </xsd:simpleType>
 
     <xsd:complexType name="property_info">
         <xsd:attribute name="enabled" type="xsd:boolean" />
