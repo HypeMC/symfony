@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+7.2
+---
+
+ * Add a `ContainerBuilder::registerChild()` shortcut method for registering child definitions
+
 7.1
 ---
 

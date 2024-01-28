@@ -216,6 +216,16 @@ class ContainerBuilderTest extends TestCase
         $this->assertInstanceOf(Definition::class, $builder->getDefinition('foo'), '->register() returns the newly created Definition instance');
     }
 
+    public function testRegisterChild()
+    {
+        $builder = new ContainerBuilder();
+        $builder->register('foo', 'Bar\FooClass');
+        $builder->registerChild('bar', 'foo');
+        $this->assertTrue($builder->hasDefinition('bar'), '->registerChild() registers a new service definition');
+        $this->assertInstanceOf(ChildDefinition::class, $definition = $builder->getDefinition('bar'), '->registerChild() returns the newly created ChildDefinition instance');
+        $this->assertSame('foo', $definition->getParent(), '->registerChild() registers a new child service definition with the parent set');
+    }
+
     public function testAutowire()
     {
         $builder = new ContainerBuilder();

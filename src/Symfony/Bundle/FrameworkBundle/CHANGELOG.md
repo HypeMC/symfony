@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+7.2
+---
+
+ * Add support for configuring multiple serializer instances via the configuration
+
 7.1
 ---
 

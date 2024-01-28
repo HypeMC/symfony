@@ -68,6 +68,13 @@ $container->loadFromExtension('framework', [
         'circular_reference_handler' => 'my.circular.reference.handler',
         'max_depth_handler' => 'my.max.depth.handler',
         'default_context' => ['enable_max_depth' => true],
+        'named_serializers' => [
+            'api' => [
+                'include_standard_normalizers' => true,
+                'include_standard_encoders' => true,
+                'default_context' => ['enable_max_depth' => false],
+            ],
+        ],
     ],
     'property_info' => true,
     'type_info' => true,
