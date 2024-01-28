@@ -47,14 +47,23 @@ class SerializerPass implements CompilerPassInterface
 
         if ($container->hasParameter('serializer.default_context')) {
             $defaultContext = $container->getParameter('serializer.default_context');
-            foreach (array_merge($normalizers, $encoders) as $service) {
-                $definition = $container->getDefinition($service);
-                $definition->setBindings(['array $defaultContext' => new BoundArgument($defaultContext, false)] + $definition->getBindings());
-            }
-
+            $this->bindDefaultContext($container, $normalizers, $encoders, $defaultContext);
             $container->getParameterBag()->remove('serializer.default_context');
         }
 
+        $this->configureSerializer($container, 'serializer', $normalizers, $encoders);
+    }
+
+    private function bindDefaultContext(ContainerBuilder $container, array $normalizers, array $encoders, array $defaultContext): void
+    {
+        foreach (array_merge($normalizers, $encoders) as $service) {
+            $definition = $container->getDefinition($service);
+            $definition->setBindings(['array $defaultContext' => new BoundArgument($defaultContext, false)] + $definition->getBindings());
+        }
+    }
+
+    private function configureSerializer(ContainerBuilder $container, string $id, array $normalizers, array $encoders): void
+    {
         if ($container->getParameter('kernel.debug') && $container->hasDefinition('serializer.data_collector')) {
             foreach ($normalizers as $i => $normalizer) {
                 $normalizers[$i] = $container->register('.debug.serializer.normalizer.'.$normalizer, TraceableNormalizer::class)
@@ -67,7 +76,7 @@ class SerializerPass implements CompilerPassInterface
             }
         }
 
-        $serializerDefinition = $container->getDefinition('serializer');
+        $serializerDefinition = $container->getDefinition($id);
         $serializerDefinition->replaceArgument(0, $normalizers);
         $serializerDefinition->replaceArgument(1, $encoders);
     }
