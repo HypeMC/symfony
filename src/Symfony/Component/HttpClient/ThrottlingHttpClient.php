@@ -11,9 +11,12 @@
 
 namespace Symfony\Component\HttpClient;
 
+use Symfony\Component\HttpClient\Response\ResponseStream;
+use Symfony\Component\HttpClient\Response\ThrottlingResponse;
 use Symfony\Component\RateLimiter\LimiterInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Contracts\HttpClient\ResponseInterface;
+use Symfony\Contracts\HttpClient\ResponseStreamInterface;
 use Symfony\Contracts\Service\ResetInterface;
 
 /**
@@ -25,6 +28,9 @@ class ThrottlingHttpClient implements HttpClientInterface, ResetInterface
         reset as private traitReset;
     }
 
+    /** @var list<\WeakReference<ThrottlingResponse>> */
+    private array $responses = [];
+
     public function __construct(
         HttpClientInterface $client,
         private readonly LimiterInterface $rateLimiter,
@@ -34,18 +40,39 @@ class ThrottlingHttpClient implements HttpClientInterface, ResetInterface
 
     public function request(string $method, string $url, array $options = []): ResponseInterface
     {
-        $response = $this->client->request($method, $url, $options);
+        $response = new ThrottlingResponse(
+            $this->client->request($method, $url, $options),
+            $this->rateLimiter->reserve()->getWaitDuration(),
+        );
 
-        if (0 < $waitDuration = $this->rateLimiter->reserve()->getWaitDuration()) {
-            $response->getInfo('pause_handler')($waitDuration);
-        }
+        $this->responses[] = \WeakReference::create($response);
 
         return $response;
+    }
+
+    public function stream(ResponseInterface|iterable $responses, float $timeout = null): ResponseStreamInterface
+    {
+        $this->initializePauseHandlers();
+
+        if ($responses instanceof ThrottlingResponse) {
+            $responses = [$responses];
+        }
+
+        return new ResponseStream(ThrottlingResponse::stream($this->client, $responses, $timeout));
     }
 
     public function reset(): void
     {
         $this->traitReset();
         $this->rateLimiter->reset();
+    }
+
+    private function initializePauseHandlers(): void
+    {
+        [$responses, $this->responses] = [$this->responses, []];
+
+        foreach ($responses as $response) {
+            $response->get()->initializePauseHandler();
+        }
     }
 }
