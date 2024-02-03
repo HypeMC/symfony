@@ -109,7 +109,8 @@ class HttpUtils
         if ('/' !== $path[0]) {
             // Shortcut if request has already been matched before
             if ($request->attributes->has('_route')) {
-                return $path === $request->attributes->get('_route');
+                return $path === $request->attributes->get('_route')
+                    || $request->attributes->has('_controller') && $path === $request->attributes->get('_controller');
             }
 
             try {

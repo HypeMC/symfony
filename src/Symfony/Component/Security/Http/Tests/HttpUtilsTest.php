@@ -318,7 +318,12 @@ class HttpUtilsTest extends TestCase
         $utils->checkRequestPath($this->getRequest(), 'foobar');
     }
 
-    public function testCheckRequestPathWithRequestAlreadyMatchedBefore()
+    /**
+     * @testWith ["route_name", true]
+     *           ["foobar", false]
+     *           ["App\\SomeController", true]
+     */
+    public function testCheckRequestPathWithRequestAlreadyMatchedBefore(string $path, bool $expected)
     {
         $urlMatcher = $this->createMock(RequestMatcherInterface::class);
         $urlMatcher
@@ -328,10 +333,10 @@ class HttpUtilsTest extends TestCase
 
         $request = $this->getRequest();
         $request->attributes->set('_route', 'route_name');
+        $request->attributes->set('_controller', 'App\\SomeController');
 
         $utils = new HttpUtils(null, $urlMatcher);
-        $this->assertTrue($utils->checkRequestPath($request, 'route_name'));
-        $this->assertFalse($utils->checkRequestPath($request, 'foobar'));
+        $this->assertSame($expected, $utils->checkRequestPath($request, $path));
     }
 
     public function testCheckPathWithoutRouteParam()
