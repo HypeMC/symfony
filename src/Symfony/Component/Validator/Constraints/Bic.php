@@ -40,6 +40,7 @@ class Bic extends Constraint
         self::INVALID_BANK_CODE_ERROR => 'INVALID_BANK_CODE_ERROR',
         self::INVALID_COUNTRY_CODE_ERROR => 'INVALID_COUNTRY_CODE_ERROR',
         self::INVALID_CASE_ERROR => 'INVALID_CASE_ERROR',
+        self::INVALID_IBAN_COUNTRY_CODE_ERROR => 'INVALID_IBAN_COUNTRY_CODE_ERROR',
     ];
 
     public $message = 'This is not a valid Business Identifier Code (BIC).';
