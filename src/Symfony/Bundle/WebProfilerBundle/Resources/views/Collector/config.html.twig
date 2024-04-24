@@ -270,6 +270,12 @@
         <a href="{{ path('_profiler_phpinfo') }}">View full PHP configuration</a>
     </p>
 
+    {% if collector.hasXdebugInfo %}
+    <p>
+        <a href="{{ path('_profiler_xdebug') }}">View Xdebug configuration</a>
+    </p>
+    {% endif %}
+
     {% if collector.bundles %}
         <h2>Enabled Bundles <small>({{ collector.bundles|length }})</small></h2>
         <table>
