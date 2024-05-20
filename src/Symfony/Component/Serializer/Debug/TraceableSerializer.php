@@ -22,8 +22,6 @@ use Symfony\Component\Serializer\SerializerInterface;
  * Collects some data about serialization.
  *
  * @author Mathias Arlaud <mathias.arlaud@gmail.com>
- *
- * @internal
  */
 class TraceableSerializer implements SerializerInterface, NormalizerInterface, DenormalizerInterface, EncoderInterface, DecoderInterface
 {
@@ -32,6 +30,7 @@ class TraceableSerializer implements SerializerInterface, NormalizerInterface, D
     public function __construct(
         private SerializerInterface&NormalizerInterface&DenormalizerInterface&EncoderInterface&DecoderInterface $serializer,
         private SerializerDataCollector $dataCollector,
+        private readonly string $serializerName = 'default',
     ) {
     }
 
@@ -45,7 +44,7 @@ class TraceableSerializer implements SerializerInterface, NormalizerInterface, D
 
         $caller = $this->getCaller(__FUNCTION__, SerializerInterface::class);
 
-        $this->dataCollector->collectSerialize($traceId, $data, $format, $context, $time, $caller);
+        $this->dataCollector->collectSerialize($traceId, $data, $format, $context, $time, $caller, $this->serializerName);
 
         return $result;
     }
@@ -60,7 +59,7 @@ class TraceableSerializer implements SerializerInterface, NormalizerInterface, D
 
         $caller = $this->getCaller(__FUNCTION__, SerializerInterface::class);
 
-        $this->dataCollector->collectDeserialize($traceId, $data, $type, $format, $context, $time, $caller);
+        $this->dataCollector->collectDeserialize($traceId, $data, $type, $format, $context, $time, $caller, $this->serializerName);
 
         return $result;
     }
@@ -75,7 +74,7 @@ class TraceableSerializer implements SerializerInterface, NormalizerInterface, D
 
         $caller = $this->getCaller(__FUNCTION__, NormalizerInterface::class);
 
-        $this->dataCollector->collectNormalize($traceId, $object, $format, $context, $time, $caller);
+        $this->dataCollector->collectNormalize($traceId, $object, $format, $context, $time, $caller, $this->serializerName);
 
         return $result;
     }
@@ -90,7 +89,7 @@ class TraceableSerializer implements SerializerInterface, NormalizerInterface, D
 
         $caller = $this->getCaller(__FUNCTION__, DenormalizerInterface::class);
 
-        $this->dataCollector->collectDenormalize($traceId, $data, $type, $format, $context, $time, $caller);
+        $this->dataCollector->collectDenormalize($traceId, $data, $type, $format, $context, $time, $caller, $this->serializerName);
 
         return $result;
     }
@@ -105,7 +104,7 @@ class TraceableSerializer implements SerializerInterface, NormalizerInterface, D
 
         $caller = $this->getCaller(__FUNCTION__, EncoderInterface::class);
 
-        $this->dataCollector->collectEncode($traceId, $data, $format, $context, $time, $caller);
+        $this->dataCollector->collectEncode($traceId, $data, $format, $context, $time, $caller, $this->serializerName);
 
         return $result;
     }
@@ -120,7 +119,7 @@ class TraceableSerializer implements SerializerInterface, NormalizerInterface, D
 
         $caller = $this->getCaller(__FUNCTION__, DecoderInterface::class);
 
-        $this->dataCollector->collectDecode($traceId, $data, $format, $context, $time, $caller);
+        $this->dataCollector->collectDecode($traceId, $data, $format, $context, $time, $caller, $this->serializerName);
 
         return $result;
     }
