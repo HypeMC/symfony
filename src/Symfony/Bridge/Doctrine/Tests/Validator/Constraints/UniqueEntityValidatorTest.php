@@ -36,6 +36,7 @@ use Symfony\Bridge\Doctrine\Tests\Fixtures\Person;
 use Symfony\Bridge\Doctrine\Tests\Fixtures\SingleIntIdEntity;
 use Symfony\Bridge\Doctrine\Tests\Fixtures\SingleIntIdNoToStringEntity;
 use Symfony\Bridge\Doctrine\Tests\Fixtures\SingleIntIdStringWrapperNameEntity;
+use Symfony\Bridge\Doctrine\Tests\Fixtures\SingleIntIdWithPrivateNameEntity;
 use Symfony\Bridge\Doctrine\Tests\Fixtures\SingleStringIdEntity;
 use Symfony\Bridge\Doctrine\Tests\Fixtures\Type\StringWrapper;
 use Symfony\Bridge\Doctrine\Tests\Fixtures\Type\StringWrapperType;
@@ -138,6 +139,7 @@ class UniqueEntityValidatorTest extends ConstraintValidatorTestCase
         $schemaTool = new SchemaTool($em);
         $schemaTool->createSchema([
             $em->getClassMetadata(SingleIntIdEntity::class),
+            $em->getClassMetadata(SingleIntIdWithPrivateNameEntity::class),
             $em->getClassMetadata(SingleIntIdNoToStringEntity::class),
             $em->getClassMetadata(DoubleNameEntity::class),
             $em->getClassMetadata(DoubleNullableNameEntity::class),
@@ -192,6 +194,25 @@ class UniqueEntityValidatorTest extends ConstraintValidatorTestCase
         ])];
 
         yield 'Named arguments' => [new UniqueEntity(message: 'myMessage', fields: ['name'], em: 'foo')];
+    }
+
+    public function testValidateEntityWithPrivatePropertyAndProxyObject()
+    {
+        $entity = new SingleIntIdWithPrivateNameEntity(1, 'Foo');
+        $this->em->persist($entity);
+        $this->em->flush();
+
+        $this->em->clear();
+
+        // this will load a proxy object
+        $entity = $this->em->getReference(SingleIntIdWithPrivateNameEntity::class, 1);
+
+        $this->validator->validate($entity, new UniqueEntity([
+            'fields' => ['name'],
+            'em' => self::EM_NAME,
+        ]));
+
+        $this->assertNoViolation();
     }
 
     /**
