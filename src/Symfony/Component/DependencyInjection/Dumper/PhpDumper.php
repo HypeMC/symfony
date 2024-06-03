@@ -15,6 +15,7 @@ use Composer\Autoload\ClassLoader;
 use Symfony\Component\Config\Resource\FileResource;
 use Symfony\Component\DependencyInjection\Argument\AbstractArgument;
 use Symfony\Component\DependencyInjection\Argument\ArgumentInterface;
+use Symfony\Component\DependencyInjection\Argument\ClassMapArgument;
 use Symfony\Component\DependencyInjection\Argument\IteratorArgument;
 use Symfony\Component\DependencyInjection\Argument\LazyClosure;
 use Symfony\Component\DependencyInjection\Argument\ServiceClosureArgument;
@@ -1899,6 +1900,10 @@ EOF;
                     $this->addGetService = true;
 
                     return sprintf('new \%s($container->getService ??= $container->getService(...), [%s%s], [%s%s])', ServiceLocator::class, $serviceMap, $serviceMap ? "\n        " : '', $serviceTypes, $serviceTypes ? "\n        " : '');
+                }
+
+                if ($value instanceof ClassMapArgument) {
+                    return $this->dumpValue($value->getValues(), false);
                 }
             } finally {
                 [$this->definitionVariables, $this->referenceVariables] = $scope;
