@@ -9,9 +9,9 @@
  * file that was distributed with this source code.
  */
 
-namespace Symfony\Component\DependencyInjection\Tests\Fixtures\ResolveClassMapsPass\Valid;
+namespace Symfony\Component\DependencyInjection\Tests\Fixtures\ResolveClassMapsPass;
 
-use Symfony\Component\DependencyInjection\Tests\Fixtures\ResolveClassMapsPass\AsFoo;
+use Symfony\Component\DependencyInjection\Tests\Compiler\AsFoo;
 
 #[AsFoo]
 class Qux

@@ -21,7 +21,7 @@ final class ResolveClassMapsPass extends AbstractRecursivePass
     protected function processValue(mixed $value, bool $isRoot = false): mixed
     {
         if (!$value instanceof ClassMapArgument) {
-            return parent::processValue($value);
+            return parent::processValue($value, $isRoot);
         }
 
         $classMapLoader = new ClassMapLoader($this->container, new FileLocator());

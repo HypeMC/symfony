@@ -11,7 +11,16 @@
 
 namespace Symfony\Component\DependencyInjection\Tests\Fixtures\ResolveClassMapsPass;
 
-#[\Attribute(\Attribute::TARGET_CLASS)]
-final class AsFoo
+use Symfony\Component\DependencyInjection\Tests\Compiler\AsFoo;
+
+#[AsFoo]
+class Baz implements FooInterface
 {
+    public const key = 'baz-const';
+    public static $key = 'baz-prop';
+
+    public function key()
+    {
+        return 'baz-method';
+    }
 }
