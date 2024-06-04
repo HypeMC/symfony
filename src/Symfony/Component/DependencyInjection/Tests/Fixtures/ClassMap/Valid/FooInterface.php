@@ -9,7 +9,7 @@
  * file that was distributed with this source code.
  */
 
-namespace Symfony\Component\DependencyInjection\Tests\Fixtures\ResolveClassMapsPass;
+namespace Symfony\Component\DependencyInjection\Tests\Fixtures\ClassMap\Valid;
 
 interface FooInterface
 {

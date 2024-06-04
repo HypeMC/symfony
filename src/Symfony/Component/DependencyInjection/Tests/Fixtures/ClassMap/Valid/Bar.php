@@ -9,9 +9,9 @@
  * file that was distributed with this source code.
  */
 
-namespace Symfony\Component\DependencyInjection\Tests\Fixtures\ResolveClassMapsPass;
+namespace Symfony\Component\DependencyInjection\Tests\Fixtures\ClassMap\Valid;
 
-use Symfony\Component\DependencyInjection\Tests\Compiler\AsFoo;
+use Symfony\Component\DependencyInjection\Tests\Fixtures\ClassMap\AsFoo;
 
 #[AsFoo]
 class Bar

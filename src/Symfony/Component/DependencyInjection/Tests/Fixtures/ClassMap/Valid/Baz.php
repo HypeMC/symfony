@@ -9,18 +9,18 @@
  * file that was distributed with this source code.
  */
 
-namespace Symfony\Component\DependencyInjection\Tests\Fixtures\ResolveClassMapsPass;
+namespace Symfony\Component\DependencyInjection\Tests\Fixtures\ClassMap\Valid;
 
-use Symfony\Component\DependencyInjection\Tests\Compiler\AsFoo;
+use Symfony\Component\DependencyInjection\Tests\Fixtures\ClassMap\AsFoo;
 
 #[AsFoo]
-class Qux
+class Baz implements FooInterface
 {
-    public const key = 'qux-const';
-    public $key = 'qux-prop';
+    public const key = 'baz-const';
+    public static $key = 'baz-prop';
 
     public function key()
     {
-        return 'qux-method';
+        return 'baz-method';
     }
 }

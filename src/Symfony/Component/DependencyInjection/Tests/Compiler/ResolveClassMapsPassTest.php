@@ -15,12 +15,13 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\Argument\ClassMapArgument;
 use Symfony\Component\DependencyInjection\Compiler\ResolveClassMapsPass;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Tests\Fixtures\ResolveClassMapsPass\Bar;
-use Symfony\Component\DependencyInjection\Tests\Fixtures\ResolveClassMapsPass\Baz;
-use Symfony\Component\DependencyInjection\Tests\Fixtures\ResolveClassMapsPass\Corge;
-use Symfony\Component\DependencyInjection\Tests\Fixtures\ResolveClassMapsPass\Foo;
-use Symfony\Component\DependencyInjection\Tests\Fixtures\ResolveClassMapsPass\FooInterface;
-use Symfony\Component\DependencyInjection\Tests\Fixtures\ResolveClassMapsPass\Qux;
+use Symfony\Component\DependencyInjection\Tests\Fixtures\ClassMap\AsFoo;
+use Symfony\Component\DependencyInjection\Tests\Fixtures\ClassMap\Valid\Bar;
+use Symfony\Component\DependencyInjection\Tests\Fixtures\ClassMap\Valid\Baz;
+use Symfony\Component\DependencyInjection\Tests\Fixtures\ClassMap\Valid\Corge;
+use Symfony\Component\DependencyInjection\Tests\Fixtures\ClassMap\Valid\Foo;
+use Symfony\Component\DependencyInjection\Tests\Fixtures\ClassMap\Valid\FooInterface;
+use Symfony\Component\DependencyInjection\Tests\Fixtures\ClassMap\Valid\Qux;
 
 class ResolveClassMapsPassTest extends TestCase
 {
@@ -44,8 +45,8 @@ class ResolveClassMapsPassTest extends TestCase
         $container = new ContainerBuilder();
         $container->setParameter('kernel.project_dir', self::$fixturesPath);
         $container->register('foo')->addArgument($arg = new ClassMapArgument(
-            'Symfony\Component\DependencyInjection\Tests\Fixtures\ResolveClassMapsPass',
-            '%kernel.project_dir%/ResolveClassMapsPass',
+            'Symfony\Component\DependencyInjection\Tests\Fixtures\ClassMap\Valid',
+            '%kernel.project_dir%/ClassMap/Valid',
             $instanceOf,
             $withAttribute,
             $indexBy,
@@ -90,9 +91,4 @@ class ResolveClassMapsPassTest extends TestCase
             0 => Baz::class,
         ]];
     }
-}
-
-#[\Attribute(\Attribute::TARGET_CLASS)]
-class AsFoo
-{
 }
