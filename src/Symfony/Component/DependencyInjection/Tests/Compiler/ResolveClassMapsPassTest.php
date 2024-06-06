@@ -20,6 +20,7 @@ use Symfony\Component\DependencyInjection\Tests\Fixtures\ClassMap\Valid\Bar;
 use Symfony\Component\DependencyInjection\Tests\Fixtures\ClassMap\Valid\Baz;
 use Symfony\Component\DependencyInjection\Tests\Fixtures\ClassMap\Valid\Corge;
 use Symfony\Component\DependencyInjection\Tests\Fixtures\ClassMap\Valid\Foo;
+use Symfony\Component\DependencyInjection\Tests\Fixtures\ClassMap\Valid\FooEnum;
 use Symfony\Component\DependencyInjection\Tests\Fixtures\ClassMap\Valid\FooInterface;
 use Symfony\Component\DependencyInjection\Tests\Fixtures\ClassMap\Valid\Qux;
 
@@ -65,6 +66,7 @@ class ResolveClassMapsPassTest extends TestCase
             2 => Corge::class,
             'foo-attribute' => Foo::class,
             3 => Qux::class,
+            'foo-enum-attribute' => FooEnum::class,
         ]];
 
         yield [null, null, 'key', [
@@ -73,12 +75,14 @@ class ResolveClassMapsPassTest extends TestCase
             'baz-prop' => Baz::class,
             'qux-const' => Qux::class,
             'corge-const' => Corge::class,
+            'foo-enum-attribute' => FooEnum::class,
         ]];
 
         yield [FooInterface::class, null, null, [
             0 => Baz::class,
             1 => Corge::class,
             'foo-attribute' => Foo::class,
+            'foo-enum-attribute' => FooEnum::class,
         ]];
 
         yield [null, AsFoo::class, 'key', [
@@ -90,5 +94,24 @@ class ResolveClassMapsPassTest extends TestCase
         yield [FooInterface::class, AsFoo::class, null, [
             0 => Baz::class,
         ]];
+    }
+
+    public function testClassMapIsResolvedWithMessage()
+    {
+        $container = new ContainerBuilder();
+        $container->setParameter('kernel.project_dir', self::$fixturesPath);
+        $definition = $container->register('foo')->addArgument($arg = new ClassMapArgument(
+            'Symfony\Component\DependencyInjection\Tests\Fixtures\ClassMap\DifferentFilename',
+            '%kernel.project_dir%/ClassMap/DifferentFilename',
+        ));
+
+        (new ResolveClassMapsPass())->process($container);
+
+        self::assertCount(0, $arg->getValues());
+        self::assertCount(1, $definition->getErrors());
+        self::assertStringMatchesFormat(
+            'The autoloader expected class "Symfony\Component\DependencyInjection\Tests\Fixtures\ClassMap\DifferentFilename\Foo_bar" to be defined in file "%s/Foo_bar.php". The file was found but the class was not in it, the class name or namespace probably has a typo.',
+            $definition->getErrors()[0],
+        );
     }
 }

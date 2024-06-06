@@ -12,6 +12,7 @@
 namespace Symfony\Component\HttpKernel\Tests\DependencyInjection;
 
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\DependencyInjection\Argument\ClassMapArgument;
 use Symfony\Component\DependencyInjection\Argument\LazyClosure;
 use Symfony\Component\DependencyInjection\Argument\RewindableGenerator;
 use Symfony\Component\DependencyInjection\Argument\ServiceClosureArgument;
@@ -518,6 +519,30 @@ class RegisterControllerArgumentLocatorsPassTest extends TestCase
         $this->assertFalse($locator->has('service2'));
     }
 
+    public function testAutowireAttributeAndClassMap()
+    {
+        $container = new ContainerBuilder();
+        $container->setParameter('fixtures_dir', realpath(__DIR__.'/../Fixtures'));
+        $resolver = $container->register('argument_resolver.service', 'stdClass')->addArgument([]);
+
+        $container->register('foo', WithAutowireAttributeAndClassMap::class)
+            ->addTag('controller.service_arguments');
+
+        (new RegisterControllerArgumentLocatorsPass())->process($container);
+
+        $locatorId = (string) $resolver->getArgument(0);
+        $container->getDefinition($locatorId)->setPublic(true);
+
+        $container->compile();
+
+        $locator = $container->get($locatorId)->get('foo::fooAction');
+
+        $this->assertSame([
+            'foo-attribute' => 'Symfony\Component\HttpKernel\Tests\Fixtures\ClassMap\Foo',
+            'foo-enum-const' => 'Symfony\Component\HttpKernel\Tests\Fixtures\ClassMap\FooEnum',
+        ], $locator->get('classMap'));
+    }
+
     /**
      * @group legacy
      */
@@ -760,6 +785,19 @@ class WithAutowireAttribute
         FooInterface $autowireCallable,
         #[Autowire(service: 'invalid.id')]
         ?\stdClass $service2 = null,
+    ) {
+    }
+}
+
+class WithAutowireAttributeAndClassMap
+{
+    public function fooAction(
+        #[Autowire(new ClassMapArgument(
+            'Symfony\Component\HttpKernel\Tests\Fixtures\ClassMap',
+            '%fixtures_dir%/ClassMap',
+            indexBy: 'KEY',
+        ))]
+        array $classMap = [],
     ) {
     }
 }

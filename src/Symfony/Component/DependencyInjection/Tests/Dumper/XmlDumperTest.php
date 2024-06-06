@@ -14,6 +14,7 @@ namespace Symfony\Component\DependencyInjection\Tests\Dumper;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\Argument\AbstractArgument;
+use Symfony\Component\DependencyInjection\Argument\ClassMapArgument;
 use Symfony\Component\DependencyInjection\Argument\ServiceClosureArgument;
 use Symfony\Component\DependencyInjection\Argument\ServiceLocatorArgument;
 use Symfony\Component\DependencyInjection\Argument\TaggedIteratorArgument;
@@ -325,5 +326,21 @@ class XmlDumperTest extends TestCase
         $dumper = new XmlDumper($container);
 
         $this->assertEquals(file_get_contents(self::$fixturesPath.'/xml/services_with_array_tags.xml'), $dumper->dump());
+    }
+
+    public function testClassMap()
+    {
+        $container = new ContainerBuilder();
+        $container->register('class_map_argument', 'stdClass')
+            ->setPublic('true')
+            ->setArguments([new ClassMapArgument(
+                'Symfony\Component\DependencyInjection\Tests\Fixtures\ClassMap\Valid',
+                self::$fixturesPath.'/ClassMap/Valid',
+            )]);
+        $container->compile();
+        $dumper = new XmlDumper($container);
+
+        $contents = file_get_contents(self::$fixturesPath.'/xml/class_map.xml');
+        $this->assertStringMatchesFormat(str_replace('FIXTURES_DIR', '%s', $contents), $dumper->dump());
     }
 }
