@@ -51,11 +51,18 @@ class DecoratorServicePass extends AbstractRecursivePass
             $decoratedService = $definition->getDecoratedService();
             [$inner, $renamedId] = $decoratedService;
             $invalidBehavior = $decoratedService[3] ?? ContainerInterface::EXCEPTION_ON_INVALID_REFERENCE;
+            $resolveAlias = $decoratedService[4] ?? false;
 
             $definition->setDecoratedService(null);
 
             if (!$renamedId) {
                 $renamedId = $id.'.inner';
+            }
+
+            if ($resolveAlias) {
+                while ($container->hasAlias($inner)) {
+                    $inner = (string) $container->getAlias($inner);
+                }
             }
 
             $decoratedIds[$inner] ??= $renamedId;

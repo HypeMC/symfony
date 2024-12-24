@@ -40,7 +40,7 @@ final class AutowireAsDecoratorPass implements CompilerPassInterface
         foreach ($reflectionClass->getAttributes(AsDecorator::class, \ReflectionAttribute::IS_INSTANCEOF) as $attribute) {
             $attribute = $attribute->newInstance();
 
-            $definition->setDecoratedService($attribute->decorates, null, $attribute->priority, $attribute->onInvalid);
+            $definition->setDecoratedService($attribute->decorates, null, $attribute->priority, $attribute->onInvalid, $attribute->resolveAlias);
         }
     }
 }

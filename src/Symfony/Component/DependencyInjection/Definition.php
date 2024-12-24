@@ -133,21 +133,23 @@ class Definition
      *
      * @throws InvalidArgumentException in case the decorated service id and the new decorated service id are equals
      */
-    public function setDecoratedService(?string $id, ?string $renamedId = null, int $priority = 0, int $invalidBehavior = ContainerInterface::EXCEPTION_ON_INVALID_REFERENCE): static
+    public function setDecoratedService(?string $id, ?string $renamedId = null, int $priority = 0, int $invalidBehavior = ContainerInterface::EXCEPTION_ON_INVALID_REFERENCE/*, bool $resolveAlias = false*/): static
     {
         if ($renamedId && $id === $renamedId) {
             throw new InvalidArgumentException(\sprintf('The decorated service inner name for "%s" must be different than the service name itself.', $id));
         }
+
+        $resolveAlias = 4 < \func_num_args() && func_get_arg(4);
 
         $this->changes['decorated_service'] = true;
 
         if (null === $id) {
             $this->decoratedService = null;
         } else {
-            $this->decoratedService = [$id, $renamedId, $priority];
+            $this->decoratedService = [$id, $renamedId, $priority, null, $resolveAlias];
 
             if (ContainerInterface::EXCEPTION_ON_INVALID_REFERENCE !== $invalidBehavior) {
-                $this->decoratedService[] = $invalidBehavior;
+                $this->decoratedService[3] = $invalidBehavior;
             }
         }
 
