@@ -14,6 +14,7 @@ namespace Symfony\Component\DependencyInjection\Tests\Compiler;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
+use PHPUnit\Framework\Attributes\RequiresPhp;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\Argument\TaggedIteratorArgument;
 use Symfony\Component\DependencyInjection\Attribute\AsTaggedItem;
@@ -23,6 +24,7 @@ use Symfony\Component\DependencyInjection\Compiler\ResolveInstanceofConditionals
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
 use Symfony\Component\DependencyInjection\Reference;
+use Symfony\Component\DependencyInjection\Tests\Fixtures\AsTaggedItemWithClosure;
 use Symfony\Component\DependencyInjection\Tests\Fixtures\BarTagClass;
 use Symfony\Component\DependencyInjection\Tests\Fixtures\FooTagClass;
 use Symfony\Component\DependencyInjection\Tests\Fixtures\FooTaggedForInvalidDefaultMethodClass;
@@ -448,6 +450,35 @@ class PriorityTaggedServiceTraitTest extends TestCase
         $this->assertEquals(['bar' => new TypedReference('service', AsTaggedItemClassWithBusinessMethod::class)], $services);
     }
 
+    public function testTaggedItemWithCallableIndexAndPriority()
+    {
+        $container = new ContainerBuilder();
+        $container->register('service1', AsTaggedItemClassWithCallable::class)
+            ->setAutoconfigured(true)
+            ->addTag('my_custom_tag');
+
+        $priorityTaggedServiceTraitImplementation = new PriorityTaggedServiceTraitImplementation();
+        $tag = new TaggedIteratorArgument('my_custom_tag', 'key');
+
+        $services = $priorityTaggedServiceTraitImplementation->test($tag, $container);
+        $this->assertEquals(['callable_key' => new TypedReference('service1', AsTaggedItemClassWithCallable::class)], $services);
+    }
+
+    #[RequiresPhp('>=8.5.0')]
+    public function testTaggedItemWithClosureIndexAndPriority()
+    {
+        $container = new ContainerBuilder();
+        $container->register('service1', AsTaggedItemWithClosure::class)
+            ->setAutoconfigured(true)
+            ->addTag('my_custom_tag');
+
+        $priorityTaggedServiceTraitImplementation = new PriorityTaggedServiceTraitImplementation();
+        $tag = new TaggedIteratorArgument('my_custom_tag', 'key');
+
+        $services = $priorityTaggedServiceTraitImplementation->test($tag, $container);
+        $this->assertEquals(['closure_key' => new TypedReference('service1', AsTaggedItemWithClosure::class)], $services);
+    }
+
     #[IgnoreDeprecations]
     #[Group('legacy')]
     public function testPriorityFallbackWithoutIndexAndStaticPriorityMethod()
@@ -622,6 +653,20 @@ class AsTaggedItemClassWithBusinessMethod
     public function getDefaultName(): string
     {
         return 'ignored';
+    }
+}
+
+#[AsTaggedItem(index: [self::class, 'getKey'], priority: [self::class, 'getPriority'])]
+class AsTaggedItemClassWithCallable
+{
+    public static function getKey(): string
+    {
+        return 'callable_key';
+    }
+
+    public static function getPriority(): int
+    {
+        return 10;
     }
 }
 
