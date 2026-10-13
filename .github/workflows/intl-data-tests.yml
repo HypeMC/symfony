@@ -2,7 +2,7 @@ name: Intl/Emoji data
 
 on:
   push:
-    branches: [ '*.*' ]
+
     paths:
       - 'src/Symfony/Component/Emoji/*.php'
       - 'src/Symfony/Component/Emoji/Resources/data/**'
