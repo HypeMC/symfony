@@ -32,6 +32,11 @@ final class ConsoleCommandEvent extends ConsoleEvent
     private bool $commandShouldRun = true;
 
     /**
+     * The code a listener gave for the command, false when it is run.
+     */
+    private int|false $exitCode = false;
+
+    /**
      * Disables the command, so it won't be run.
      */
     public function disableCommand(): bool
@@ -41,6 +46,8 @@ final class ConsoleCommandEvent extends ConsoleEvent
 
     public function enableCommand(): bool
     {
+        $this->exitCode = false;
+
         return $this->commandShouldRun = true;
     }
 
@@ -50,5 +57,28 @@ final class ConsoleCommandEvent extends ConsoleEvent
     public function commandShouldRun(): bool
     {
         return $this->commandShouldRun;
+    }
+
+    /**
+     * Keeps the command from being run, and gives the code the application exits with instead.
+     *
+     * The terminate event can still change it. A command disabled with disableCommand() returns
+     * "RETURN_CODE_DISABLED" whatever is set here.
+     */
+    public function setExitCode(int $exitCode): void
+    {
+        if ($exitCode < 0 || $exitCode > 255) {
+            throw new \InvalidArgumentException('Exit code must be between 0 and 255.');
+        }
+
+        $this->exitCode = $exitCode;
+    }
+
+    /**
+     * Returns the code a listener gave for the command, or false when none did.
+     */
+    public function getExitCode(): int|false
+    {
+        return $this->exitCode;
     }
 }

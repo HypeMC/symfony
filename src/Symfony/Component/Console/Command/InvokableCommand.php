@@ -21,6 +21,7 @@ use Symfony\Component\Console\Attribute\MapInput;
 use Symfony\Component\Console\Attribute\Option;
 use Symfony\Component\Console\CommandChain;
 use Symfony\Component\Console\Cursor;
+use Symfony\Component\Console\Event\ConsoleCommandArgumentsEvent;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputDefinition;
 use Symfony\Component\Console\Input\InputInterface;
@@ -64,7 +65,20 @@ class InvokableCommand implements SignalableCommandInterface
      */
     public function __invoke(InputInterface $input, OutputInterface $output): int
     {
-        $statusCode = $this->invokable->invoke(...$this->getParameters($this->invokable, $input, $output));
+        $parameters = $this->getParameters($this->invokable, $input, $output);
+
+        if ($dispatcher = $this->command->getApplication()?->getDispatcher()) {
+            $event = new ConsoleCommandArgumentsEvent($this->command, $input, $output, $parameters, $this->invokable);
+            $dispatcher->dispatch($event);
+
+            if (false !== $exitCode = $event->getExitCode()) {
+                return $exitCode;
+            }
+
+            $parameters = $event->getArguments();
+        }
+
+        $statusCode = $this->invokable->invoke(...$parameters);
 
         if (!\is_int($statusCode)) {
             throw new \TypeError(\sprintf('The command "%s" must return an integer value in the "%s" method, but "%s" was returned.', $this->command->getName(), $this->invokable->getName(), get_debug_type($statusCode)));

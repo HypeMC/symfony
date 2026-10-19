@@ -28,6 +28,7 @@
         "symfony/config": "^7.4|^8.0",
         "symfony/dependency-injection": "^8.2",
         "symfony/event-dispatcher": "^8.1",
+        "symfony/expression-language": "^7.4|^8.0",
         "symfony/filesystem": "^7.4|^8.0",
         "symfony/http-foundation": "^7.4|^8.0",
         "symfony/http-kernel": "^7.4|^8.0",

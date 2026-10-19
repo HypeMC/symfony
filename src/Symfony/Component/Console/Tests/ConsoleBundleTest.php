@@ -14,6 +14,7 @@ namespace Symfony\Component\Console\Tests;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Attribute\Lock;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\ConsoleBundle;
 use Symfony\Component\Console\Input\InputInterface;
@@ -23,6 +24,8 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Kernel\AbstractKernel;
 use Symfony\Component\DependencyInjection\Kernel\KernelTrait;
 use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Lock\LockBundle;
+use Symfony\Component\Lock\SharedLockInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 class ConsoleBundleTest extends TestCase
@@ -104,6 +107,21 @@ class ConsoleBundleTest extends TestCase
         $this->assertStringContainsString('Hello!', $tester->getDisplay());
     }
 
+    public function testALockedCommandIsGivenItsLock()
+    {
+        $kernel = new TestConsoleLockKernel('test', true, $this->varDir);
+        $kernel->boot();
+
+        $app = new Application('test', '1.0', $kernel->getContainer());
+        $app->setAutoExit(false);
+
+        $tester = new ApplicationTester($app);
+        $tester->run(['command' => 'test:lock']);
+
+        $this->assertSame(0, $tester->getStatusCode());
+        $this->assertSame('lock', $tester->getDisplay());
+    }
+
     private function createKernel(): TestConsoleKernel
     {
         return new TestConsoleKernel('test', true, $this->varDir);
@@ -142,6 +160,35 @@ class ConsoleBundleTestCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $output->write('Hello!');
+
+        return Command::SUCCESS;
+    }
+}
+
+class TestConsoleLockKernel extends TestConsoleKernel
+{
+    public function registerBundles(): iterable
+    {
+        yield from parent::registerBundles();
+        yield new LockBundle();
+    }
+
+    protected function build(ContainerBuilder $container): void
+    {
+        parent::build($container);
+
+        $container->register(ConsoleBundleTestLockCommand::class, ConsoleBundleTestLockCommand::class)
+            ->addTag('console.command');
+    }
+}
+
+#[AsCommand('test:lock')]
+#[Lock]
+class ConsoleBundleTestLockCommand
+{
+    public function __invoke(SharedLockInterface $lock, OutputInterface $output): int
+    {
+        $output->write($lock->isAcquired() ? 'lock' : 'no lock');
 
         return Command::SUCCESS;
     }

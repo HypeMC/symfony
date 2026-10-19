@@ -1196,10 +1196,10 @@ class Application implements ResetInterface
         try {
             $this->dispatcher->dispatch($event, ConsoleEvents::COMMAND);
 
-            if ($event->commandShouldRun()) {
-                $exitCode = $command->run($input, $output);
-            } else {
+            if (!$event->commandShouldRun()) {
                 $exitCode = ConsoleCommandEvent::RETURN_CODE_DISABLED;
+            } elseif (false === $exitCode = $event->getExitCode()) {
+                $exitCode = $command->run($input, $output);
             }
         } catch (\Throwable $e) {
             $event = new ConsoleErrorEvent($input, $output, $e, $command);

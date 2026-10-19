@@ -1945,6 +1945,51 @@ class ApplicationTest extends TestCase
         $this->assertEquals(ConsoleCommandEvent::RETURN_CODE_DISABLED, $exitCode);
     }
 
+    public function testRunWithDispatcherSkippingCommandWithExitCode()
+    {
+        $terminateExitCode = null;
+        $dispatcher = new EventDispatcher();
+        $dispatcher->addListener('console.command', static function (ConsoleCommandEvent $event) {
+            $event->setExitCode(42);
+        });
+        $dispatcher->addListener('console.terminate', static function (ConsoleTerminateEvent $event) use (&$terminateExitCode) {
+            $terminateExitCode = $event->getExitCode();
+        });
+
+        $tester = new ApplicationTester($this->createApplicationRunningFoo($dispatcher));
+
+        $this->assertSame(42, $tester->run(['command' => 'foo']));
+        $this->assertSame('', $tester->getDisplay());
+        $this->assertSame(42, $terminateExitCode);
+    }
+
+    public function testRunWithDispatcherDisablingCommandIgnoresTheExitCodeGivenToIt()
+    {
+        $dispatcher = new EventDispatcher();
+        $dispatcher->addListener('console.command', static function (ConsoleCommandEvent $event) {
+            $event->setExitCode(42);
+            $event->disableCommand();
+        });
+
+        $tester = new ApplicationTester($this->createApplicationRunningFoo($dispatcher));
+
+        $this->assertSame(ConsoleCommandEvent::RETURN_CODE_DISABLED, $tester->run(['command' => 'foo']));
+    }
+
+    public function testRunWithDispatcherEnablingCommandClearsTheExitCodeGivenToIt()
+    {
+        $dispatcher = new EventDispatcher();
+        $dispatcher->addListener('console.command', static function (ConsoleCommandEvent $event) {
+            $event->setExitCode(42);
+            $event->enableCommand();
+        });
+
+        $tester = new ApplicationTester($this->createApplicationRunningFoo($dispatcher));
+
+        $this->assertSame(0, $tester->run(['command' => 'foo']));
+        $this->assertSame('foo.', $tester->getDisplay());
+    }
+
     public function testRunWithDispatcherAccessingInputOptions()
     {
         $noInteractionValue = null;
@@ -2138,6 +2183,21 @@ class ApplicationTest extends TestCase
         $application->run(new ArrayInput(['command' => 'foo']), new NullOutput());
 
         $this->assertSame(['foo' => true], $loaded);
+    }
+
+    private function createApplicationRunningFoo(EventDispatcher $dispatcher): Application
+    {
+        $application = new Application();
+        $application->setDispatcher($dispatcher);
+        $application->setAutoExit(false);
+
+        $application->register('foo')->setCode(static function (InputInterface $input, OutputInterface $output): int {
+            $output->write('foo.');
+
+            return 0;
+        });
+
+        return $application;
     }
 
     protected function getDispatcher($skipCommand = false)

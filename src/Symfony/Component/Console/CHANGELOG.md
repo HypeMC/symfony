@@ -23,6 +23,10 @@ CHANGELOG
  * Allow union and intersection type-hints when autowiring arguments of invokable commands
  * Add the `$ttl` parameter to `LockableTrait::lock()`
  * Exit with 128 + the signal number (e.g. `130` for a Ctrl+C) instead of `0` when a signal stops the application; `ConsoleSignalEvent::getExitCode()` and the `$previousExitCode` argument of `SignalableCommandInterface::handleSignal()` start with this code
+ * Add `ConsoleCommandArgumentsEvent`, dispatched once the arguments of an invokable command are resolved, to inspect or replace the ones it is called with, or to return an exit code instead of calling it
+ * Add `ConsoleCommandEvent::setExitCode()` and `getExitCode()`, to skip a command with a code of your own instead of `RETURN_CODE_DISABLED`
+ * Add the `#[Lock]` attribute to keep a command from running while another process runs it, with a key that can read the input
+ * Resolve the `LockInterface` and `SharedLockInterface` arguments of a command to the lock its `#[Lock]` attribute acquired, so it can refresh or release it
 
 8.1
 ---

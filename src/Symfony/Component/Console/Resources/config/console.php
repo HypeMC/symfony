@@ -17,11 +17,13 @@ use Symfony\Component\Console\ArgumentResolver\ValueResolver\BuiltinTypeValueRes
 use Symfony\Component\Console\ArgumentResolver\ValueResolver\DateTimeValueResolver;
 use Symfony\Component\Console\ArgumentResolver\ValueResolver\DefaultValueResolver;
 use Symfony\Component\Console\ArgumentResolver\ValueResolver\InputFileValueResolver;
+use Symfony\Component\Console\ArgumentResolver\ValueResolver\LockValueResolver;
 use Symfony\Component\Console\ArgumentResolver\ValueResolver\MapInputValueResolver;
 use Symfony\Component\Console\ArgumentResolver\ValueResolver\ServiceValueResolver;
 use Symfony\Component\Console\ArgumentResolver\ValueResolver\UidValueResolver;
 use Symfony\Component\Console\ArgumentResolver\ValueResolver\VariadicValueResolver;
 use Symfony\Component\Console\EventListener\ErrorListener;
+use Symfony\Component\Console\EventListener\LockAttributeListener;
 use Symfony\Component\Dotenv\Command\DebugCommand as DotenvDebugCommand;
 
 return static function (ContainerConfigurator $container) {
@@ -32,6 +34,13 @@ return static function (ContainerConfigurator $container) {
             ])
             ->tag('kernel.event_subscriber')
             ->tag('monolog.logger', ['channel' => 'console'])
+
+        ->set('console.lock_attribute_listener', LockAttributeListener::class)
+            ->args([
+                tagged_locator('lock.factory', 'name'),
+            ])
+            ->tag('kernel.event_subscriber')
+            ->tag('container.remove_if_missing', ['service' => 'lock.factory.abstract'])
 
         ->set('console.command.dotenv_debug', DotenvDebugCommand::class)
             ->args([
@@ -74,6 +83,14 @@ return static function (ContainerConfigurator $container) {
                 service('console.argument_resolver.input_file'),
             ])
             ->tag('console.argument_value_resolver', ['priority' => 100, 'name' => MapInputValueResolver::class])
+
+        ->set('console.argument_resolver.lock', LockValueResolver::class)
+            ->args([
+                service('console.lock_attribute_listener'),
+            ])
+            ->tag('console.argument_value_resolver', ['priority' => 100, 'name' => LockValueResolver::class])
+            ->tag('kernel.event_subscriber')
+            ->tag('container.remove_if_missing', ['service' => 'lock.factory.abstract'])
 
         ->set('console.argument_resolver.service', ServiceValueResolver::class)
             ->args([
